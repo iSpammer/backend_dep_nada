@@ -3,7 +3,7 @@
   become: yes
   synchronize:
     src: /
-    dest: /home/ubuntu
+    dest: /home/ubuntu/
     recursive: true
 
 - name: "pip build"

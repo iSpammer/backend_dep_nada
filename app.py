@@ -15,9 +15,29 @@ def hello():
     return "hey"
 @app.route('/predict', methods=['POST'])
 def predict():
-    model = load_model('model/LSTMGLOVE.hdf5', compile=False)
+
+    df = pd.read_csv('trial3.csv',
+                 encoding='ISO-8859-1', 
+                 names=[
+                        'sentences',
+                        'label',
+                        'souce' 
+                         ])
+    df['sentences'] = df['sentences'].str.lower()
+    # The maximum number of words to be used. (most frequent)
     MAX_NB_WORDS = 10000
+    # Max number of words in each complaint.
     MAX_SEQUENCE_LENGTH = 100
+    import string
+    # Define the function to remove the punctuation
+    def remove_punctuations(text):
+        for punctuation in string.punctuation:
+            text = text.replace(punctuation, '')
+        return text
+    # Apply to the DF series
+    df['sentences'] = df['sentences'].apply(remove_punctuations)
+    model = load_model('CNN(Word2vec).hdf5', compile=False)
+
 
     tokenizer  = Tokenizer(num_words = MAX_NB_WORDS)
 
@@ -27,25 +47,23 @@ def predict():
             json = request.get_json()  
             model_columns = ["neutral", "Magnifying/minimizing", "Personalization", "overgeneralization", "should statements"]
             print(json)
-            # tst = [[  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  0,
-            #           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-            #           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  0,   0,   0,
-            #           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-            #           0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-            #           0,   0,   0,   0,   0,   0,   0,   1,  40, 118]]
-            tmp=(json['arr'])
+            tokenizer  = Tokenizer(num_words = MAX_NB_WORDS)
+            tokenizer.fit_on_texts(df['sentences'])
+            sequences =  tokenizer.texts_to_sequences(df['sentences'])
 
+
+            tmpr=(json['arr'])
+            tmp = [tmpr]
             tokenizer.fit_on_texts(tmp)
-            tmp =  tokenizer.texts_to_sequences(tmp)
-            test_data = pad_sequences(tmp, maxlen=MAX_SEQUENCE_LENGTH)
+            test_sequences =  tokenizer.texts_to_sequences(tmp)
+            test_data = pad_sequences(test_sequences, maxlen=MAX_SEQUENCE_LENGTH)
+
+
 
             print(test_data)
-            # vals=np.array(temp)
-            # print(temp)
-            # vals = np.expand_dims(vals, axis=0)
             prediction = model.predict(test_data)
             print("here:",prediction)        
-            return jsonify({'prediction': str(prediction[0])})
+            return jsonify({'prediction': str(prediction)})
         except:        
             return jsonify({'trace': traceback.format_exc()})
     else:
